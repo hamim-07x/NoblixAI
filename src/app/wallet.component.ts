@@ -33,9 +33,14 @@ import { SettingsService } from './settings.service';
                 <h2 class="text-lg font-bold text-white dark:text-black">{{ tgService.user()?.first_name || 'NoblixAi' }} {{ tgService.user()?.last_name || '' }}</h2>
                 <span class="bg-[#3B82F6]/20 text-[#3B82F6] text-[10px] font-bold px-2 py-0.5 rounded-full">BETA</span>
               </div>
-              <div class="flex items-center gap-1 mt-0.5">
+              <div class="flex items-center gap-1 mt-0.5 cursor-pointer hover:opacity-80 transition-opacity" (click)="copyUid()" (keyup.enter)="copyUid()" tabindex="0" title="Copy UID">
                 <span class="text-xs font-medium text-gray-500 bg-white/5 dark:bg-black/5 px-1.5 py-0.5 rounded">UID</span>
                 <span class="text-xs font-medium text-gray-400 dark:text-gray-500">{{ tgService.user()?.id || '987654321' }}</span>
+                @if (uidCopied()) {
+                  <mat-icon class="text-[14px] w-[14px] h-[14px] text-green-500 ml-1">check</mat-icon>
+                } @else {
+                  <mat-icon class="text-[14px] w-[14px] h-[14px] text-gray-500 ml-1">content_copy</mat-icon>
+                }
               </div>
             </div>
           </div>
@@ -230,6 +235,7 @@ export class WalletComponent implements OnInit, OnDestroy {
   
   balance = signal<number>(0);
   selectedToken = signal<any>(null);
+  uidCopied = signal<boolean>(false);
   private intervalId: any;
 
   // Dynamic Prices & Balances for NBX (mocked)
@@ -370,5 +376,19 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   handleImageError(event: any) {
     event.target.src = 'https://picsum.photos/seed/avatar/100/100';
+  }
+
+  copyUid() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
+    const uid = this.tgService.user()?.id?.toString() || '987654321';
+    navigator.clipboard.writeText(uid).then(() => {
+      this.uidCopied.set(true);
+      setTimeout(() => {
+        this.uidCopied.set(false);
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy UID: ', err);
+    });
   }
 }
