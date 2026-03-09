@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { HttpClient } from '@angular/common/http';
 import { TelegramService } from './telegram.service';
@@ -44,14 +44,16 @@ import { TelegramService } from './telegram.service';
     </div>
   `
 })
-export class EarnComponent {
+export class EarnComponent implements OnInit, OnDestroy {
   http = inject(HttpClient);
   tgService = inject(TelegramService);
+  platformId = inject(PLATFORM_ID);
 
   balance = signal(0);
   energy = signal(1000);
   maxEnergy = 1000;
   tapValue = 1;
+  private intervalId: any;
 
   ngOnInit() {
     const user = this.tgService.user();
@@ -62,12 +64,20 @@ export class EarnComponent {
       });
     }
 
-    // Energy regeneration
-    setInterval(() => {
-      if (this.energy() < this.maxEnergy) {
-        this.energy.update(e => Math.min(this.maxEnergy, e + 1));
-      }
-    }, 1000);
+    // Energy regeneration only in browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.intervalId = setInterval(() => {
+        if (this.energy() < this.maxEnergy) {
+          this.energy.update(e => Math.min(this.maxEnergy, e + 1));
+        }
+      }, 1000);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   tap() {
@@ -91,6 +101,8 @@ export class EarnComponent {
   }
 
   createFloatingNumber() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
     const container = document.getElementById('tap-container');
     if (!container) return;
 

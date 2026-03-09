@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, OnDestroy, signal, computed, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TelegramService } from './telegram.service';
 import { HttpClient } from '@angular/common/http';
@@ -87,7 +87,7 @@ import { SettingsService } from './settings.service';
           
           <div class="space-y-3">
             @for (asset of assets(); track asset.symbol) {
-              <div (click)="openToken(asset)" class="flex items-center justify-between bg-[#141414] dark:bg-gray-100 p-4 rounded-3xl border border-white/5 dark:border-black/5 hover:bg-white/[0.04] dark:hover:bg-black/[0.04] transition-colors cursor-pointer active:scale-[0.98]">
+              <div (click)="openToken(asset)" (keyup.enter)="openToken(asset)" tabindex="0" class="flex items-center justify-between bg-[#141414] dark:bg-gray-100 p-4 rounded-3xl border border-white/5 dark:border-black/5 hover:bg-white/[0.04] dark:hover:bg-black/[0.04] transition-colors cursor-pointer active:scale-[0.98]">
                 <div class="flex items-center gap-4">
                   @if (asset.type === 'nbx') {
                     <div class="w-11 h-11 rounded-full bg-[#8B5CF6] flex items-center justify-center shadow-lg">
@@ -220,14 +220,16 @@ import { SettingsService } from './settings.service';
     </div>
   `
 })
-export class WalletComponent implements OnInit {
+export class WalletComponent implements OnInit, OnDestroy {
   tgService = inject(TelegramService);
   http = inject(HttpClient);
   cryptoService = inject(CryptoService);
   settings = inject(SettingsService);
+  platformId = inject(PLATFORM_ID);
   
   balance = signal<number>(0);
   selectedToken = signal<any>(null);
+  private intervalId: any;
 
   // Dynamic Prices & Balances for NBX (mocked)
   nbxPrice = signal(0.01);
@@ -338,11 +340,19 @@ export class WalletComponent implements OnInit {
       });
     }
 
-    // Simulate live market price fluctuations for NBX only
-    setInterval(() => {
-      this.nbxPrice.update(p => p * (1 + (Math.random() * 0.02 - 0.01)));
-      this.nbxChange.update(c => c + (Math.random() * 0.5 - 0.25));
-    }, 3000);
+    // Simulate live market price fluctuations for NBX only in browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.intervalId = setInterval(() => {
+        this.nbxPrice.update(p => p * (1 + (Math.random() * 0.02 - 0.01)));
+        this.nbxChange.update(c => c + (Math.random() * 0.5 - 0.25));
+      }, 3000);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   openToken(asset: any) {
