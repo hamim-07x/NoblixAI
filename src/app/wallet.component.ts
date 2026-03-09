@@ -22,14 +22,15 @@ import { SettingsService } from './settings.service';
               <img 
                 [src]="tgService.user()?.photo_url || 'https://picsum.photos/seed/avatar/100/100'" 
                 alt="Profile" 
-                class="w-12 h-12 rounded-full border border-white/10 dark:border-black/10 object-cover"
+                class="w-12 h-12 rounded-full border border-white/10 dark:border-black/10 object-cover bg-gray-800"
                 referrerpolicy="no-referrer"
+                (error)="handleImageError($event)"
               >
               <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#050505] dark:border-white rounded-full"></div>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h2 class="text-lg font-bold text-white dark:text-black">NoblixAi Wallet</h2>
+                <h2 class="text-lg font-bold text-white dark:text-black">{{ tgService.user()?.first_name || 'NoblixAi' }} {{ tgService.user()?.last_name || '' }}</h2>
                 <span class="bg-[#3B82F6]/20 text-[#3B82F6] text-[10px] font-bold px-2 py-0.5 rounded-full">BETA</span>
               </div>
               <div class="flex items-center gap-1 mt-0.5">
@@ -365,5 +366,9 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   getTokenHistory(symbol: string) {
     return this.allTransactions.filter(tx => tx.symbol === symbol);
+  }
+
+  handleImageError(event: any) {
+    event.target.src = 'https://picsum.photos/seed/avatar/100/100';
   }
 }

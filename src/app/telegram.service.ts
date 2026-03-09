@@ -11,6 +11,14 @@ export interface TelegramUser {
   photo_url?: string;
 }
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: any;
+    };
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,28 +33,38 @@ export class TelegramService {
     this.init();
   }
 
-  private async init() {
+  private init() {
     if (isPlatformBrowser(this.platformId)) {
       try {
-        // Dynamic import to avoid SSR issues with window
-        const WebApp = (await import('@twa-dev/sdk')).default;
-        this.webApp = WebApp;
-        
-        if (WebApp.initDataUnsafe && WebApp.initDataUnsafe.user) {
-          this.user.set(WebApp.initDataUnsafe.user as TelegramUser);
+        if (window.Telegram && window.Telegram.WebApp) {
+          this.webApp = window.Telegram.WebApp;
+          
+          if (this.webApp.initDataUnsafe && this.webApp.initDataUnsafe.user) {
+            this.user.set(this.webApp.initDataUnsafe.user as TelegramUser);
+          } else {
+            // Mock data for local testing outside Telegram
+            this.user.set({
+              id: 0,
+              first_name: 'Guest',
+              last_name: '(Not in Mini App)',
+              username: 'guest',
+              photo_url: 'https://picsum.photos/seed/guest/100/100'
+            });
+          }
+          this.webApp.ready();
+          this.webApp.expand();
+          this.isReady.set(true);
         } else {
-          // Mock data for local testing outside Telegram
+          // Mock data if Telegram WebApp is not available
           this.user.set({
-            id: 123456789,
-            first_name: 'Test',
-            last_name: 'User',
-            username: 'testuser',
-            photo_url: 'https://picsum.photos/seed/testuser/100/100'
+            id: 0,
+            first_name: 'Guest',
+            last_name: '(Browser)',
+            username: 'guest',
+            photo_url: 'https://picsum.photos/seed/guest/100/100'
           });
+          this.isReady.set(true);
         }
-        WebApp.ready();
-        WebApp.expand();
-        this.isReady.set(true);
       } catch (e) {
         console.error('Error initializing Telegram Web App', e);
       }
